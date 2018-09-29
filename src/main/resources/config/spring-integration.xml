@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:int="http://www.springframework.org/schema/integration"
+       xmlns:int-ftp="http://www.springframework.org/schema/integration/ftp"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd http://www.springframework.org/schema/integration/ftp http://www.springframework.org/schema/integration/ftp/spring-integration-ftp.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!--注解扫描-->
+    <context:annotation-config/>
+    <context:component-scan base-package="com.pinnet"/>
+    <!--声明通道-->
+    <int:channel id="inputChannel"/>
+    <int:channel id="outputChannel"/>
+    <!--需要处理的通道流程-->
+    <int:service-activator
+            input-channel="inputChannel"
+            output-channel="outputChannel"
+            ref="userService"
+            method="show"/>
+    <bean id="userService" class="com.pinnet.service.impl.UserServiceImpl"/>
+
+    <!--ftp通道-->
+    <int:channel id="ftpInputChannel"/>
+    <int:channel id="ftpOutputChannel"/>
+
+    <!--ftpfactory-->
+    <bean id="ftpSessionFactory" class="org.springframework.integration.ftp.session.DefaultFtpSessionFactory">
+        <property name="host" value="10.169.222.115"/>
+        <property name="port" value="21"/>
+        <property name="username" value="用户名"/>
+        <property name="password" value="密码"/>
+        <property name="controlEncoding" value="utf-8"/>
+        <property name="connectTimeout" value="60"/>
+    </bean>
+
+    <!--ftp的文件获取-->
+    <int-ftp:inbound-channel-adapter
+            auto-startup="true"
+            channel="ftpInputChannel"
+            session-factory="ftpSessionFactory"
+            local-directory="D:/test/local/"
+            auto-create-local-directory="true"
+            remote-directory="/"
+            delete-remote-files="true">
+        <int:poller cron="0/15 * * * * ?"/>
+    </int-ftp:inbound-channel-adapter>
+
+    <!--文件流向，以及处理-->
+    <int:service-activator input-channel="ftpInputChannel" output-channel="ftpOutputChannel" ref="ftpService" method="execute"/>
+    <bean id="ftpService" class="com.pinnet.service.impl.FtpServiceImpl"/>
+</beans>
